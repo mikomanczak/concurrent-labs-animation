@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Concurrent Labs Morph with Floating</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #1d1e20; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <!-- p5.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script>
+    let font, particles = [];
+    const threshold = 30;
+    const easing = 0.00567;
+
+    function preload() {
+      font = loadFont('https://grok.com/fonts/font-text/Font-Text-400-Trial.ttf');
+    }
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      const fontSize = min(width, height) / 8;
+      const bounds = font.textBounds("Concurrent Labs", 0, 0, fontSize);
+      const x = width / 2 - bounds.w / 2;
+      const y = height / 2 + bounds.h / 2;
+      const textPoints = font.textToPoints("Concurrent Labs", x, y, fontSize, { sampleFactor: 0.2 });
+      
+      textPoints.forEach(pt => {
+        particles.push({
+          pos: createVector(random(width), random(height)),
+          target: createVector(pt.x, pt.y),
+          offset: random(TWO_PI)  // For floating effect
+        });
+      });
+    }
+
+    function draw() {
+      // Calculate fade alpha (0 to 255) over the first 500ms
+      const fadeAlpha = constrain(map(millis(), 0, 9000, 0, 255), 0, 255);
+
+      background('#1d1e20');
+
+      // Draw connecting lines with fading alpha (base alpha of 100 scaled)
+      stroke(128, 128, 128, fadeAlpha * (100/255));
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          let d = p5.Vector.dist(particles[i].pos, particles[j].pos);
+          if (d < threshold) {
+            strokeWeight(map(d, 0, threshold, 2, 0.5));
+            line(particles[i].pos.x, particles[i].pos.y,
+                 particles[j].pos.x, particles[j].pos.y);
+          }
+        }
+      }
+
+      // Draw particles with fade effect
+      noStroke();
+      fill(180, 180, 180, fadeAlpha);
+      particles.forEach(p => {
+        p.pos.x = lerp(p.pos.x, p.target.x, easing);
+        p.pos.y = lerp(p.pos.y, p.target.y, easing);
+        const floatX = sin(frameCount * 0.05 + p.offset);
+        const floatY = cos(frameCount * 0.05 + p.offset);
+        ellipse(p.pos.x + floatX, p.pos.y + floatY, 4);
+      });
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
